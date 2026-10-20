@@ -1323,13 +1323,6 @@ def render_sidebar():
             elif last != -no:
                 s[f"_nav_last_{mod_id}"] = -no
                 st.sidebar.toast(f"第 {no} 步尚未完成，请按顺序完成前面的步骤后再跳转")
-    # 小白化词条
-    with st.sidebar.expander("📖 小白化词条（8 个）", expanded=False):
-        for term, info in GLOSSARY.items():
-            with st.sidebar.expander(term):
-                st.sidebar.markdown(f"**一句话**：{info['explain']}")
-                st.sidebar.markdown(f"**案例**：{info['case']}")
-                st.sidebar.markdown(f"**样例**：{info['sample']}")
     # 教师模式
     teacher = st.sidebar.checkbox("👩‍🏫 教师模式", key="teacher_mode")
     if teacher:
@@ -1376,7 +1369,7 @@ def render_landing():
         with col:
             st.markdown(
                 f'<div style="border:1px solid #dbe4f5;border-top:5px solid {accent};'
-                'border-radius:10px;padding:14px 14px;height:158px;background:#f8fafd">'
+                'border-radius:10px;padding:14px 14px;min-height:158px;background:#f8fafd">'
                 f'<div style="font-weight:700;font-size:16px;color:#0b3d91">{title}</div>'
                 f'<div style="font-size:13px;color:#666;margin:4px 0 8px">{span}</div>'
                 f'<div style="font-size:14px;color:#333;line-height:1.6">{desc}</div></div>',
