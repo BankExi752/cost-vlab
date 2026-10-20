@@ -64,6 +64,17 @@ STEPS = [
     (28, "经营决策报告",                  "C", "输出报告",   "终结性评分"),
 ]
 STEP_FULL = 28
+
+# 侧边栏导航短名（简短好看，pills 短标签用）
+NAV_SHORT = {
+    1: "签约", 2: "采购", 3: "入库", 4: "领料", 5: "人工",
+    6: "混合成本", 7: "制造费用", 8: "辅助分配", 9: "约当产量", 10: "品种法",
+    11: "分批法", 12: "分步法", 13: "两法切换", 14: "量本利", 15: "产销情境",
+    16: "存货计价", 17: "标准成本", 18: "差异分析", 19: "金点子",
+    20: "作业成本", 21: "动因博弈", 22: "责任中心", 23: "仪表盘",
+    24: "风险应对", 25: "红线检查", 26: "复盘", 27: "能力画像", 28: "决策报告",
+}
+MODULE_ACCENTS = {"A": "#0b3d91", "B": "#1f6feb", "C": "#2e9e5b"}
 MILESTONES = {5: "已完成 5/28！你已掌握成本核算的开局要领。",
               10: "已完成 10/28！你已掌握成本核算核心方法，进入两法对比阶段。",
               15: "已完成 15/28！两法对比与差异分析已过半，继续加油。",
@@ -1287,25 +1298,31 @@ def render_sidebar():
             st.rerun()
         else:
             st.sidebar.warning("暂无可回退的步骤")
-    # 模块导航
-    st.sidebar.markdown("### 🧭 28 步导航")
+    # 模块导航：三模块色条 + pills 短标签（简短好看）
+    st.sidebar.markdown("### 🧭 步骤导航")
+    st.sidebar.caption("点已完成步骤可回看 · 未完成步骤按顺序走")
     for mod_id, mod_name, _ in MODULES:
         steps_in_mod = [s0 for s0 in STEPS if s0[2] == mod_id]
-        with st.sidebar.expander(mod_name, expanded=(s.current_step in [x[0] for x in steps_in_mod])):
-            for no, name, _, _, _ in steps_in_mod:
-                if no in s.decisions:
-                    if no == 25:
-                        st.sidebar.button(f"✅ {no}. {name}", key=f"nav_{no}",
-                                          disabled=True, help="红线检查不可返回修改")
-                    else:
-                        st.sidebar.button(f"✅ {no}. {name}", key=f"nav_{no}",
-                                          on_click=set_step, args=(no,))
-                elif no == s.current_step:
-                    st.sidebar.button(f"➡️ {no}. {name}", key=f"nav_{no}",
-                                      disabled=True)
-                else:
-                    st.sidebar.button(f"⬜ {no}. {name}", key=f"nav_{no}",
-                                      disabled=True)
+        accent = MODULE_ACCENTS[mod_id]
+        st.sidebar.markdown(
+            f"<div style='border-left:4px solid {accent};padding:2px 8px;margin:8px 0 2px;"
+            f"font-weight:700;color:{accent};font-size:13px'>{mod_name}</div>",
+            unsafe_allow_html=True)
+        labels = [f"{no} {NAV_SHORT[no]}" for no, _, _, _, _ in steps_in_mod]
+        sel = st.sidebar.pills("跳转", labels, key=f"nav_pills_{mod_id}",
+                               selection_mode="single", label_visibility="collapsed")
+        if sel:
+            no = int(sel.split(" ")[0])
+            last = s.get(f"_nav_last_{mod_id}")
+            if no in s.decisions or no == s.current_step:
+                if last != no:
+                    s[f"_nav_last_{mod_id}"] = no
+                    if no != s.current_step:
+                        s.current_step = no
+                        st.rerun()
+            elif last != -no:
+                s[f"_nav_last_{mod_id}"] = -no
+                st.sidebar.toast(f"第 {no} 步尚未完成，请按顺序完成前面的步骤后再跳转")
     # 小白化词条
     with st.sidebar.expander("📖 小白化词条（8 个）", expanded=False):
         for term, info in GLOSSARY.items():
@@ -1406,10 +1423,6 @@ def render_landing():
     if center.button("🚀 开始实验（进入第 1 步）", type="primary", key="start_btn", width="stretch"):
         s.landing = False
         st.rerun()
-
-
-def set_step(no):
-    st.session_state.current_step = no
 
 
 def render_main():

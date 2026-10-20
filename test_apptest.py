@@ -145,7 +145,7 @@ at2.run()
 click(at2, "fin_2")
 check("步2落库为低价供应商", at2.session_state["decisions"][2]["supplier"] == "低价供应商",
       at2.session_state["decisions"][2].get("supplier"))
-at2.sidebar.button(key="nav_2").click()
+at2.sidebar.pills(key="nav_pills_A").set_value("2 采购")
 at2.run()
 check("返回步2后radio恢复低价供应商", "低价供应商" in at2.radio(key="s2_sup").value,
       str(at2.radio(key="s2_sup").value))
