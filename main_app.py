@@ -96,6 +96,26 @@ def _nav_cb(page_id):
     st.session_state["top_nav"] = PAGE_BY_ID[page_id]
 
 
+def _nav_top_cb():
+    """顶部板块导航 on_change：点击项与当前板块不同即切换（回调阶段写入，最稳）"""
+    s = st.session_state
+    sel = s.get("top_nav")
+    if sel and sel in PAGE_BY_LABEL:
+        page_id = PAGE_BY_LABEL[sel]
+        if page_id != s.page:
+            s.page = page_id
+
+
+def _map_cb(mod_id):
+    """导览页实验地图卡片：进入决策台对应模块的第一个未完成步骤（不绕步）"""
+    s = st.session_state
+    mod_steps = [no for no, _, m, _, _ in MAIN_STEPS if m == mod_id]
+    target = next((no for no in mod_steps if no not in s.decisions), mod_steps[-1])
+    s.page = "决策台"
+    s.current_step = target
+    st.session_state["top_nav"] = PAGE_BY_ID["决策台"]
+
+
 def main_done():
     """主线（决策台 1-25 步）是否完成"""
     return all(i in st.session_state.decisions for i in range(1, 26))
@@ -1428,25 +1448,28 @@ def render_landing():
         f'{APP_VERSION} · 3 学时（每模块 1 课时）</div></div>',
         unsafe_allow_html=True)
 
-    st.markdown("## 🗺️ 实验地图：25 步决策主线 + 3 大输出板块（从上到下依次完成）")
+    st.markdown("## 🗺️ 实验地图：25 步决策主线 + 3 大输出板块（点卡片下方按钮可直接进入）")
     map_items = [
-        ("模块A · 成本核算基本功", "步骤 1-10", "#0b3d91",
+        ("模块A · 成本核算基本功", "步骤 1-10", "#0b3d91", "A",
          "把成本算对——材料采购、费用归集、约当产量与品种法成本计算单，打牢核算底子"),
-        ("模块B · 两法对比与决策", "步骤 11-19", "#1f6feb",
+        ("模块B · 两法对比与决策", "步骤 11-19", "#1f6feb", "B",
          "把差异说清——分批/分步法、变动与完全成本法对比、量本利与标准成本差异，方法决定口径"),
-        ("模块C · 作业责任与降本", "步骤 20-25", "#2e9e5b",
+        ("模块C · 作业责任与降本", "步骤 20-25", "#2e9e5b", "C",
          "把降本做实——作业成本、责任中心、风险与红线；主线收官后在复盘/画像/报告三大板块完成闭环输出"),
     ]
     c1, c2, c3 = st.columns(3)
-    for col, (title, span, accent, desc) in zip((c1, c2, c3), map_items):
+    for col, (title, span, accent, mod_id, desc) in zip((c1, c2, c3), map_items):
         with col:
             st.markdown(
                 f'<div style="border:1px solid #dbe4f5;border-top:5px solid {accent};'
-                'border-radius:10px;padding:14px 14px;min-height:158px;background:#f8fafd">'
+                'border-radius:10px;padding:14px 14px;min-height:132px;background:#f8fafd;'
+                'box-shadow:0 2px 8px rgba(15,40,90,0.06)">'
                 f'<div style="font-weight:700;font-size:16px;color:#0b3d91">{title}</div>'
                 f'<div style="font-size:13px;color:#666;margin:4px 0 8px">{span}</div>'
                 f'<div style="font-size:14px;color:#333;line-height:1.6">{desc}</div></div>',
                 unsafe_allow_html=True)
+            st.button(f"🚀 进入模块{mod_id} · 从「{span}」开始", key=f"map_go_{mod_id}",
+                      width="stretch", on_click=_map_cb, args=(mod_id,))
 
     st.markdown("💡 **逻辑主线**：先把成本算对、把家底摸清（模块A），再用两法对比与差异诊断看清利润背后的口径（模块B），"
                 "最后用作业成本、责任考核把降本落到责任人头上（模块C）。前 19 步决定四指标的底子，后 6 步决定责任与绩效——"
@@ -1573,7 +1596,8 @@ def render_top_nav():
     labels = [t for t, _ in PAGES]
     cur = PAGE_BY_ID[s.page]
     sel = st.pills("板块导航", labels, key="top_nav", default=cur,
-                   label_visibility="collapsed", width="stretch")
+                   label_visibility="collapsed", width="stretch",
+                   on_change=_nav_top_cb)
     if sel:
         page_id = PAGE_BY_LABEL[sel]
         if page_id != s.page:
