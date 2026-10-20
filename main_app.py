@@ -1298,15 +1298,34 @@ def render_sidebar():
             st.rerun()
         else:
             st.sidebar.warning("暂无可回退的步骤")
-    # 模块导航：三模块色条 + pills 短标签（简短好看）
+    # 模块导航：三模块色条 + pills 短标签（简短好看）+ 彩色状态提醒
     st.sidebar.markdown("### 🧭 步骤导航")
     st.sidebar.caption("点已完成步骤可回看 · 未完成步骤按顺序走")
+    # 28 步彩色状态点阵：绿=已完成 / 蓝=当前 / 灰=未完成（悬停显示步骤名）
+    dot_html = []
+    for no, name, _, _, _ in STEPS:
+        if no in s.decisions:
+            color, mark, tip = "#2e9e5b", "✓", f"已完成 · {no}. {name}"
+        elif no == s.current_step:
+            color, mark, tip = "#1f6feb", "➤", f"当前步骤 · {no}. {name}"
+        else:
+            color, mark, tip = "#c6d2e2", "", f"未完成 · {no}. {name}"
+        dot_html.append(
+            f'<span title="{tip}" style="display:inline-block;width:13px;height:13px;margin:1px;'
+            f'border-radius:3px;background:{color};color:#fff;font-size:9px;line-height:13px;'
+            f'text-align:center">{mark}</span>')
+    st.sidebar.markdown(
+        f'<div style="margin:4px 0 2px" title="绿=已完成 · 蓝=当前 · 灰=未完成">{"".join(dot_html)}</div>',
+        unsafe_allow_html=True)
     for mod_id, mod_name, _ in MODULES:
         steps_in_mod = [s0 for s0 in STEPS if s0[2] == mod_id]
         accent = MODULE_ACCENTS[mod_id]
+        done_in_mod = sum(1 for no, _, m, _, _ in STEPS if m == mod_id and no in s.decisions)
         st.sidebar.markdown(
             f"<div style='border-left:4px solid {accent};padding:2px 8px;margin:8px 0 2px;"
-            f"font-weight:700;color:{accent};font-size:13px'>{mod_name}</div>",
+            f"font-weight:700;color:{accent};font-size:13px'>{mod_name}"
+            f"<span style='float:right;color:#9aa7bd;font-weight:400;font-size:12px'>"
+            f"已完成 {done_in_mod}/{len(steps_in_mod)}</span></div>",
             unsafe_allow_html=True)
         labels = [f"{no} {NAV_SHORT[no]}" for no, _, _, _, _ in steps_in_mod]
         sel = st.sidebar.pills("跳转", labels, key=f"nav_pills_{mod_id}",
