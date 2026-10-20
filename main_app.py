@@ -169,8 +169,10 @@ def compute_indicators(cfg, red_line_counts):
         profit = (cfg["selling_price"] - var_unit) * cfg["sales_qty"] - cfg["overhead"]
         sales_cost = var_unit * cfg["sales_qty"] + cfg["overhead"]
     else:
-        profit = cfg["selling_price"] * cfg["sales_qty"] - unit_cost * cfg["sales_qty"] * cfg["inv_adj"]
-        sales_cost = unit_cost * cfg["sales_qty"] * cfg["inv_adj"]
+        # 产销平衡时无期末存货，存货计价不影响已销成本；存在存货时（产销不平衡）才应用计价系数
+        adj = cfg["inv_adj"] if cfg["finished_qty"] > cfg["sales_qty"] else 1.0
+        profit = cfg["selling_price"] * cfg["sales_qty"] - unit_cost * cfg["sales_qty"] * adj
+        sales_cost = unit_cost * cfg["sales_qty"] * adj
     deviation = unit_cost / cfg["std_unit"] * 100.0 if cfg["std_unit"] else 100.0
     perf = perf_score(deviation) - 30.0 * sum(red_line_counts.values())
     perf = max(0.0, min(100.0, perf))
