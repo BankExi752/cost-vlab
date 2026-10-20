@@ -585,6 +585,62 @@ def finish_button(no, decision, ok=None, disabled=False):
         st.rerun()
 
 
+def safe_eval_expr(expr: str):
+    """安全计算四则运算表达式：AST 白名单求值，不使用 eval。"""
+    import ast
+    expr = (expr or "").strip()
+    if not expr:
+        return None
+    allowed = (ast.Expression, ast.BinOp, ast.Add, ast.Sub, ast.Mult, ast.Div,
+               ast.UnaryOp, ast.USub, ast.UAdd, ast.Constant)
+    try:
+        tree = ast.parse(expr, mode="eval")
+    except SyntaxError:
+        return None
+    for node in ast.walk(tree):
+        if not isinstance(node, allowed):
+            return None
+        if isinstance(node, ast.Constant) and not isinstance(node.value, (int, float)):
+            return None
+    try:
+        return eval(compile(tree, "<calc>", "eval"))
+    except (ZeroDivisionError, TypeError, OverflowError):
+        return None
+
+
+# 需要计算的步骤 → 本步公式参考（提示语）
+CALC_HINTS = {
+    3: "材料金额 = 单价（元/kg） × 采购量（kg） × 质量系数（1.00）。如 11*5000",
+    5: "直接人工 = 生产工时（h） × 工资率（元/h）。如 2000*25",
+    6: "高低点法：b =（最高费用 − 最低费用）÷（最高产量 − 最低产量）= (64000-52000)/(1000-700) → 40；固定成本 a = 64000 - 40*1000 → 24000",
+    8: "供电→基本生产 = 6000 × 分配比例。如 6000*0.6 → 3600；供电→管理 = 6000-3600",
+    9: "加工约当产量 = 在产品 × 完工程度；约当总产量 = 完工 300 + 加工约当 + 材料约当。如 100*0.5 → 50",
+    10: "品种法单位成本 =（材料总额 + 加工总额）÷ 约当总产量。可先算总额再算单位成本",
+    11: "批次成本 = 材料 + 人工 + 制造费用。如 A：25000+15000+10000 → 50000；B：20000+12000+8000 → 40000",
+    12: "还原材料成本 = 半成品数量 × 单位成本 × 还原率。如 200*350*0.6 → 42000",
+    16: "加权平均单位成本 = 可供销售总成本 ÷ 可供销售总数量；已销成本 = 单位成本 × 销量",
+    17: "变动成本法利润 =（售价 − 单位变动成本）× 销量 − 固定制造费用。如 (600-330)*300-24000 → 57000",
+    20: "作业分配率 = 作业成本 ÷ 作业动因总量；产品应负担 = 分配率 × 该产品动因量",
+}
+
+
+def render_calculator(hint: str):
+    """步骤旁计算器：学生可直接输入算式即时计算（支持 + - * / 与括号）。"""
+    with st.expander("🧮 计算器（本步公式参考）", expanded=True):
+        st.caption(hint)
+        expr = st.text_input("算式（回车即算）", key="calc_expr",
+                             placeholder="如 2000*25 或 (64000-52000)/(1000-700)")
+        if expr.strip():
+            res = safe_eval_expr(expr)
+            if res is None:
+                st.warning("算式无法识别：仅支持数字与 + - * / ( ) ，请检查后重试。")
+            elif isinstance(res, float):
+                txt = f"{res:,.4f}".rstrip("0").rstrip(".")
+                st.success(f"结果：**{txt}**")
+            else:
+                st.success(f"结果：**{res:,}**")
+
+
 def render_step1():
     s = st.session_state
     prev = s.decisions.get(1, {})
@@ -1390,6 +1446,9 @@ def render_main():
                  21: render_step21, 22: render_step22, 23: render_step23, 24: render_step24,
                  25: render_step25, 26: render_step26, 27: render_step27, 28: render_step28}
     renderers.get(s.current_step, render_step1)()
+    # 步骤旁计算器（仅需要计算的步骤显示）
+    if s.current_step in CALC_HINTS:
+        render_calculator(CALC_HINTS[s.current_step])
     if s.current_step > 1 and not s.terminated:
         st.divider()
         with st.expander("📖 学一点：小白化词条（按需查看）"):

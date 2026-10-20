@@ -119,6 +119,25 @@ adv = app.ai_step_advice(6, None, {"deviation": 120.0, "profit": -1000.0, "perf"
                          dict(cfg), {6: {"ok": False}})
 check("AI建议3条且含偏离/亏损/绩效", len(adv) == 3 and any("120" in a for a in adv), adv)
 
+# ---------- 10. 步骤旁计算器（safe_eval_expr） ----------
+check("计算器：乘法 11*5000=55000", abs(app.safe_eval_expr("11*5000") - 55000) < 1e-9,
+      app.safe_eval_expr("11*5000"))
+check("计算器：混合运算 (64000-52000)/(1000-700)=40",
+      abs(app.safe_eval_expr("(64000-52000)/(1000-700)") - 40) < 1e-9,
+      app.safe_eval_expr("(64000-52000)/(1000-700)"))
+check("计算器：小数 6000*0.6=3600", abs(app.safe_eval_expr("6000*0.6") - 3600) < 1e-9,
+      app.safe_eval_expr("6000*0.6"))
+check("计算器：负数 -(5000) 合法", abs(app.safe_eval_expr("-5000") + 5000) < 1e-9,
+      app.safe_eval_expr("-5000"))
+check("计算器：除零返回 None（不抛异常）", app.safe_eval_expr("1/0") is None)
+check("计算器：非法字符（×中文乘号）拒绝", app.safe_eval_expr("100×50") is None)
+check("计算器：注入函数调用（__import__）拒绝", app.safe_eval_expr("__import__('os')") is None)
+check("计算器：注入属性访问（__class__）拒绝", app.safe_eval_expr("(1).__class__") is None)
+check("计算器：语法错误拒绝", app.safe_eval_expr("1+") is None)
+check("计算器：空输入返回 None", app.safe_eval_expr("") is None)
+check("计算器提示覆盖11个计算步骤", {3, 5, 6, 8, 9, 10, 11, 12, 16, 17, 20} <= set(app.CALC_HINTS),
+      set(app.CALC_HINTS))
+
 # ---------- 汇总 ----------
 print(f"\n=== 冒烟结果：PASS {len(PASS)} / {len(PASS) + len(FAIL)} ===")
 if FAIL:

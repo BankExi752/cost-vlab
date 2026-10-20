@@ -171,6 +171,26 @@ click(at3, "s24_btn2")
 check("步24二次确认后进入第25步（复位回归）", at3.session_state["current_step"] == 25,
       f"实际={at3.session_state.get('current_step')}")
 
+# ===== 计算器回归：步3 旁计算器可用（公式提示 + 即时计算 + 非法输入提示） =====
+at4 = AppTest.from_file("main_app.py", default_timeout=120)
+at4.run()
+click(at4, "start_btn")
+click(at4, "fin_1")
+click(at4, "fin_2")
+exp_labels = [str(e.label) for e in at4.expander]
+check("步3旁出现计算器", any("计算器" in x for x in exp_labels), exp_labels)
+at4.text_input(key="calc_expr").set_value("11*5000")
+at4.run()
+calc_txt = " | ".join(str(e.value) for e in at4.success)
+check("步3计算器算出 55,000", "55,000" in calc_txt, calc_txt)
+at4.text_input(key="calc_expr").set_value("100×50")
+at4.run()
+calc_warn = " | ".join(str(e.value) for e in at4.warning)
+check("非法算式（中文乘号）给出提示", "算式无法识别" in calc_warn, calc_warn)
+click(at4, "fin_3")
+check("步3计算器后确认进入步4", at4.session_state["current_step"] == 4,
+      f"实际={at4.session_state.get('current_step')}")
+
 print(f"\n=== AppTest 结果：PASS {len(PASS)} / {len(PASS) + len(FAIL)} ===")
 if FAIL:
     print("FAILED:", FAIL)
