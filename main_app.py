@@ -24,7 +24,7 @@ import streamlit as st
 APP_VERSION = "V4.0"
 
 # ============================================================================
-# 一、元数据：28 步、模块、术语
+# 一、元数据：25 步主线 + 三大输出板块、模块、术语
 # ============================================================================
 MODULES = [
     ("A", "模块A · 成本核算基本功", "1 课时"),
@@ -593,12 +593,20 @@ def plot_radar(scores):
 
 
 # ============================================================================
-# 五、28 步渲染
+# 五、25 步主线渲染（26/27/28 为独立板块）
 # ============================================================================
 def step_header(no, name):
+    """步骤标题横幅：模块主题色渐变 + 交互/算账影响说明"""
     mod = dict((s[0], s[2]) for s in STEPS)[no]
-    st.subheader(f"第 {no} 步 · {name}")
-    st.caption(f"模块{mod} · 交互：{dict((s[0], s[3]) for s in STEPS)[no]} · 算账影响：{dict((s[0], s[4]) for s in STEPS)[no]}")
+    accent = MODULE_ACCENTS[mod]
+    st.markdown(
+        f'<div style="background:linear-gradient(120deg,{accent} 0%,#2f7cf6 100%);'
+        f'border-radius:14px;padding:14px 20px;color:#fff;margin:8px 0 14px;'
+        f'box-shadow:0 4px 14px rgba(11,61,145,0.18)">'
+        f'<div style="font-size:21px;font-weight:700;letter-spacing:0.5px">第 {no} 步 · {name}</div>'
+        f'<div style="font-size:12.5px;opacity:0.92;margin-top:4px;line-height:1.6">'
+        f'模块{mod} · 交互：{dict((s[0], s[3]) for s in STEPS)[no]} · 算账影响：{dict((s[0], s[4]) for s in STEPS)[no]}</div></div>',
+        unsafe_allow_html=True)
     if st.session_state.indicators is not None and st.session_state.current_step == no:
         pass
 
@@ -1410,10 +1418,12 @@ def render_landing():
     """着陆页：参照《数据资产运营总监》版面——渐变标题块 + 实验地图 + 逻辑主线 + 实训节奏 + 实验介绍"""
     s = st.session_state
     st.markdown(
-        '<div style="background:linear-gradient(135deg,#0b3d91 0%,#1f6feb 100%);'
-        'padding:30px 28px;border-radius:14px;color:#fff;margin-bottom:10px">'
-        '<div style="font-size:32px;font-weight:700;letter-spacing:1px">🎯 智控成本 · 数创价值</div>'
-        '<div style="font-size:15px;opacity:0.92;margin-top:8px;line-height:1.6">'
+        '<div style="background:linear-gradient(135deg,#0b3d91 0%,#1f6feb 55%,#2e9e5b 130%);'
+        'padding:34px 30px;border-radius:16px;color:#fff;margin-bottom:12px;'
+        'box-shadow:0 10px 30px rgba(11,61,145,0.25);'
+        'border-bottom:4px solid rgba(255,255,255,0.25)">'
+        '<div style="font-size:34px;font-weight:700;letter-spacing:1.5px">🎯 智控成本 · 数创价值</div>'
+        '<div style="font-size:15px;opacity:0.92;margin-top:10px;line-height:1.7">'
         '制造企业全流程成本管理虚拟仿真决策实训 · 西南财经大学天府学院《成本管理会计 ACT1415A》课程组 · '
         f'{APP_VERSION} · 3 学时（每模块 1 课时）</div></div>',
         unsafe_allow_html=True)
@@ -1481,6 +1491,82 @@ def render_landing():
                   width="stretch", on_click=_nav_cb, args=("决策台",))
 
 
+def inject_css():
+    """全局 UI 主题：浅蓝渐变背景 + 卡片化 + 统一圆角阴影，让界面清爽独特"""
+    st.markdown("""<style>
+    /* ===== 应用背景与主容器 ===== */
+    [data-testid="stAppViewContainer"] > .main {
+        background: linear-gradient(165deg, #eef3ff 0%, #f7faff 45%, #ffffff 100%);
+    }
+    [data-testid="stHeader"] { background: transparent; }
+    .block-container { padding-top: 1.2rem; padding-bottom: 2rem; }
+
+    /* ===== 侧边栏 ===== */
+    [data-testid="stSidebar"] {
+        background: linear-gradient(180deg, #f2f6ff 0%, #ffffff 100%);
+        border-right: 1px solid #e3e9f7;
+    }
+    [data-testid="stSidebar"] .stMarkdown p { color: #26334d; }
+
+    /* ===== 标题 ===== */
+    h1, h2, h3 { color: #0b3d91; letter-spacing: 0.3px; }
+    h1 { background: linear-gradient(90deg, #0b3d91, #1f6feb); -webkit-background-clip: text;
+         -webkit-text-fill-color: transparent; }
+    h2 { border-left: 5px solid #1f6feb; padding-left: 12px; }
+
+    /* ===== 指标卡 ===== */
+    [data-testid="stMetric"] {
+        background: #ffffff;
+        border: 1px solid #e3e9f7;
+        border-radius: 12px;
+        padding: 10px 14px;
+        box-shadow: 0 2px 8px rgba(15, 40, 90, 0.06);
+    }
+    [data-testid="stMetricLabel"] p { color: #64748b; font-size: 13px; }
+    [data-testid="stMetricValue"] { color: #0b3d91; }
+
+    /* ===== 按钮 ===== */
+    .stButton > button, .stDownloadButton > button {
+        border-radius: 10px;
+        border: 1px solid #dbe4f5;
+        box-shadow: 0 2px 6px rgba(15, 40, 90, 0.08);
+        transition: all 0.15s ease;
+    }
+    .stButton > button:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(31, 111, 235, 0.22); }
+    .stButton > button[kind="primary"] {
+        background: linear-gradient(120deg, #0b3d91, #1f6feb);
+        border: none; color: #fff; font-weight: 600;
+    }
+
+    /* ===== 数据表 ===== */
+    [data-testid="stDataFrame"] { border-radius: 12px; overflow: hidden;
+        border: 1px solid #e3e9f7; box-shadow: 0 2px 8px rgba(15, 40, 90, 0.05); }
+
+    /* ===== 折叠区（词条/计算器） ===== */
+    [data-testid="stExpander"] {
+        border: 1px solid #e3e9f7; border-radius: 12px;
+        box-shadow: 0 1px 5px rgba(15, 40, 90, 0.05); margin-bottom: 10px;
+    }
+
+    /* ===== 输入控件 ===== */
+    .stTextInput input, .stNumberInput input, .stTextArea textarea, .stSelectbox > div > div {
+        border-radius: 10px !important; border-color: #dbe4f5 !important;
+    }
+    .stTextInput input:focus, .stTextArea textarea:focus {
+        border-color: #1f6feb !important; box-shadow: 0 0 0 2px rgba(31, 111, 235, 0.15) !important;
+    }
+
+    /* ===== 进度条 ===== */
+    [data-testid="stProgress"] > div > div > div { background: linear-gradient(90deg, #2e9e5b, #1f6feb); }
+
+    /* ===== 滚动条 ===== */
+    ::-webkit-scrollbar { width: 9px; height: 9px; }
+    ::-webkit-scrollbar-thumb { background: #c5d3ea; border-radius: 9px; }
+    ::-webkit-scrollbar-thumb:hover { background: #a9bfe3; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    </style>""", unsafe_allow_html=True)
+
+
 def render_top_nav():
     """顶部板块导航（参照参考应用：实验导览 / 决策台 / 复盘报告 等独立板块）"""
     s = st.session_state
@@ -1498,10 +1584,15 @@ def render_top_nav():
 def render_board(step_no):
     """独立板块页：26 复盘报告 / 27 能力画像 / 28 经营决策报告"""
     s = st.session_state
-    st.title(BOARD_NAMES[step_no])
-    st.caption("独立板块 · 基于「决策台」主线（第 1-25 步）过程数据自动生成")
+    st.markdown(
+        f'<div style="background:linear-gradient(120deg,#0b3d91 0%,#1f6feb 100%);'
+        f'border-radius:14px;padding:16px 22px;color:#fff;margin:6px 0 10px;'
+        f'box-shadow:0 4px 14px rgba(11,61,145,0.2)">'
+        f'<div style="font-size:22px;font-weight:700">{BOARD_NAMES[step_no]}</div>'
+        f'<div style="font-size:13px;opacity:0.92;margin-top:4px">独立板块 · 基于「决策台」主线（第 1-25 步）过程数据自动生成</div></div>',
+        unsafe_allow_html=True)
     if not main_done():
-        st.info("主线尚未完成：请先在「🧭 决策台（24步）」完成第 1-25 步，本板块数据才能生成。")
+        st.info("主线尚未完成：请先在「🧭 决策台（25步）」完成第 1-25 步，本板块数据才能生成。")
         st.button("去决策台完成主线", type="primary", key=f"go_decision_{step_no}",
                   on_click=_nav_cb, args=("决策台",))
         return
@@ -1526,10 +1617,16 @@ def render_main():
         return
     # ===== 决策台（主线 1-25）=====
     if s.current_step >= 26:
-        st.title("🎉 决策台主线已完成")
-        st.info("第 1-25 步已全部完成。后续三个板块为独立输出，请通过**顶部板块导航**进入："
-                "📋 复盘报告（同口径复盘）· 🛡️ 能力画像（五维雷达）· "
-                "📊 经营决策报告（定价/排产/考核建议与终结性评分）。")
+        st.markdown(
+            '<div style="background:linear-gradient(120deg,#2e9e5b 0%,#1f6feb 100%);'
+            'border-radius:14px;padding:20px 24px;color:#fff;margin:6px 0 14px;'
+            'box-shadow:0 4px 14px rgba(46,158,91,0.25)">'
+            '<div style="font-size:24px;font-weight:700">🎉 决策台主线已完成</div>'
+            '<div style="font-size:14px;opacity:0.94;margin-top:8px;line-height:1.7">'
+            '第 1-25 步已全部完成。后续三个板块为独立输出，请通过**顶部板块导航**进入：'
+            '📋 复盘报告（同口径复盘）· 🛡️ 能力画像（五维雷达）· '
+            '📊 经营决策报告（定价/排产/考核建议与终结性评分）。</div></div>',
+            unsafe_allow_html=True)
         c1, c2, c3 = st.columns(3)
         with c1:
             st.button("📋 复盘报告", type="primary", key="go_board_26", width="stretch",
@@ -1575,6 +1672,7 @@ def render_main():
 def main():
     st.set_page_config(page_title="智控成本·数创价值——成本管理虚拟仿真决策实训",
                        page_icon="🎯", layout="wide")
+    inject_css()
     init_state()
     render_top_nav()
     render_sidebar()
