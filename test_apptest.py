@@ -118,9 +118,8 @@ txt25 = all_text(at) + " | " + " | ".join(str(t.value) for t in at.title)
 check("决策台主线完成提示页", "决策台主线已完成" in txt25, txt25[:200])
 check("主线完成入口含复盘报告", "复盘报告" in txt25, txt25[:300])
 
-# ===== 步 26/27/28 独立板块（顶部导航切换）=====
-at.pills(key="top_nav").set_value("📋 复盘报告")
-at.run()
+# ===== 步 26/27/28 独立板块（顶部导航按钮切换）=====
+click(at, "topnav_复盘")
 check("顶部导航切到复盘板块", at.session_state["page"] == "复盘",
       f"实际={at.session_state.get('page')}")
 txt26 = all_text(at) + " | " + " | ".join(str(t.value) for t in at.title)
@@ -129,8 +128,7 @@ click(at, "s26_btn")
 check("步26确认已记录", 26 in at.session_state["decisions"],
       f"decisions={list(at.session_state['decisions'])[-5:]}")
 
-at.pills(key="top_nav").set_value("🛡️ 能力画像")
-at.run()
+click(at, "topnav_画像")
 check("顶部导航切到画像板块", at.session_state["page"] == "画像",
       f"实际={at.session_state.get('page')}")
 txt27 = all_text(at) + " | " + " | ".join(str(t.value) for t in at.title)
@@ -139,8 +137,7 @@ click(at, "s27_btn")
 check("步27确认已记录", 27 in at.session_state["decisions"],
       f"decisions={list(at.session_state['decisions'])[-5:]}")
 
-at.pills(key="top_nav").set_value("📊 经营决策报告")
-at.run()
+click(at, "topnav_报告")
 check("顶部导航切到报告板块", at.session_state["page"] == "报告",
       f"实际={at.session_state.get('page')}")
 txt28 = all_text(at) + " | " + " | ".join(str(t.value) for t in at.title)

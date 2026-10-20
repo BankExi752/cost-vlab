@@ -91,19 +91,8 @@ BOARD_NAMES = {26: "📋 复盘报告 · 同口径复盘",
 
 
 def _nav_cb(page_id):
-    """板块切换回调：在 widget 实例化前运行，可安全更新导航高亮"""
+    """板块切换回调：按钮 on_click，在 widget 实例化前运行"""
     st.session_state.page = page_id
-    st.session_state["top_nav"] = PAGE_BY_ID[page_id]
-
-
-def _nav_top_cb():
-    """顶部板块导航 on_change：点击项与当前板块不同即切换（回调阶段写入，最稳）"""
-    s = st.session_state
-    sel = s.get("top_nav")
-    if sel and sel in PAGE_BY_LABEL:
-        page_id = PAGE_BY_LABEL[sel]
-        if page_id != s.page:
-            s.page = page_id
 
 
 def _map_cb(mod_id):
@@ -113,7 +102,6 @@ def _map_cb(mod_id):
     target = next((no for no in mod_steps if no not in s.decisions), mod_steps[-1])
     s.page = "决策台"
     s.current_step = target
-    st.session_state["top_nav"] = PAGE_BY_ID["决策台"]
 
 
 def main_done():
@@ -1591,18 +1579,15 @@ def inject_css():
 
 
 def render_top_nav():
-    """顶部板块导航（参照参考应用：实验导览 / 决策台 / 复盘报告 等独立板块）"""
+    """顶部板块导航：5 个按钮一排（选中项主色高亮），on_click 回调切换，最稳可点"""
     s = st.session_state
-    labels = [t for t, _ in PAGES]
-    cur = PAGE_BY_ID[s.page]
-    sel = st.pills("板块导航", labels, key="top_nav", default=cur,
-                   label_visibility="collapsed", width="stretch",
-                   on_change=_nav_top_cb)
-    if sel:
-        page_id = PAGE_BY_LABEL[sel]
-        if page_id != s.page:
-            s.page = page_id
-            st.rerun()
+    cols = st.columns(len(PAGES))
+    for col, (label, page_id) in zip(cols, PAGES):
+        with col:
+            active = page_id == s.page
+            col.button(label, key=f"topnav_{page_id}",
+                       type="primary" if active else "secondary",
+                       width="stretch", on_click=_nav_cb, args=(page_id,))
 
 
 def render_board(step_no):
