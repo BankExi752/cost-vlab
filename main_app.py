@@ -283,6 +283,7 @@ def init_state():
     if "started" in s:
         return
     s.started = True
+    s.landing = True          # 着陆页（实验地图/逻辑主线/实训节奏/实验介绍）门控
     s.current_step = 1
     s.decisions = {}
     s.step_ok = {}
@@ -1154,6 +1155,8 @@ def render_step28():
 # ============================================================================
 def render_sidebar():
     s = st.session_state
+    st.sidebar.markdown("### 🎯 智控成本 · 数创价值")
+    st.sidebar.caption("选择决策并完成 28 步实验 · 四指标实时刷新")
     st.sidebar.markdown("## 🎯 四指标实时面板")
     ind = s.indicators
     if ind is None:
@@ -1234,15 +1237,87 @@ def render_sidebar():
         st.rerun()
 
 
+def render_landing():
+    """着陆页：参照《数据资产运营总监》版面——渐变标题块 + 实验地图 + 逻辑主线 + 实训节奏 + 实验介绍"""
+    s = st.session_state
+    st.markdown(
+        '<div style="background:linear-gradient(135deg,#0b3d91 0%,#1f6feb 100%);'
+        'padding:30px 28px;border-radius:14px;color:#fff;margin-bottom:10px">'
+        '<div style="font-size:32px;font-weight:700;letter-spacing:1px">🎯 智控成本 · 数创价值</div>'
+        '<div style="font-size:15px;opacity:0.92;margin-top:8px;line-height:1.6">'
+        '制造企业全流程成本管理虚拟仿真决策实训 · 西南财经大学天府学院《成本管理会计 ACT1415A》课程组 · '
+        f'{APP_VERSION} · 3 学时（每模块 1 课时）</div></div>',
+        unsafe_allow_html=True)
+
+    st.markdown("## 🗺️ 实验地图：28 步决策全流程（从上到下依次完成）")
+    map_items = [
+        ("模块A · 成本核算基本功", "步骤 1-10", "#0b3d91",
+         "把成本算对——材料采购、费用归集、约当产量与品种法成本计算单，打牢核算底子"),
+        ("模块B · 两法对比与决策", "步骤 11-19", "#1f6feb",
+         "把差异说清——分批/分步法、变动与完全成本法对比、量本利与标准成本差异，方法决定口径"),
+        ("模块C · 作业责任与降本", "步骤 20-28", "#2e9e5b",
+         "把降本做实——作业成本、责任中心、风险与红线、同口径复盘与经营决策报告"),
+    ]
+    c1, c2, c3 = st.columns(3)
+    for col, (title, span, accent, desc) in zip((c1, c2, c3), map_items):
+        with col:
+            st.markdown(
+                f'<div style="border:1px solid #dbe4f5;border-top:5px solid {accent};'
+                'border-radius:10px;padding:14px 14px;height:158px;background:#f8fafd">'
+                f'<div style="font-weight:700;font-size:16px;color:#0b3d91">{title}</div>'
+                f'<div style="font-size:13px;color:#666;margin:4px 0 8px">{span}</div>'
+                f'<div style="font-size:14px;color:#333;line-height:1.6">{desc}</div></div>',
+                unsafe_allow_html=True)
+
+    st.markdown("💡 **逻辑主线**：先把成本算对、把家底摸清（模块A），再用两法对比与差异诊断看清利润背后的口径（模块B），"
+                "最后用作业成本、责任考核把降本落到责任人头上（模块C）。前 19 步决定四指标的底子，后 9 步决定责任与绩效——"
+                "能算对成本、解释差异、用成本做决策，才是完整的成本管理闭环。")
+
+    st.markdown("## 🔄 实训节奏（为什么分三模块？）")
+    rhythm = [
+        ("第 1 阶段 · 把账算对",
+         "材料—人工—制造费用全链路归集，约当产量法算准完工与在产品成本——先尝到甜头，建立信心"),
+        ("第 2 阶段 · 把差异说清",
+         "两法对比、量本利与产销情境、标准成本差异归属——制造挫败感，暴露“方法选错就亏”的认知误区"),
+        ("第 3 阶段 · 把降本做实",
+         "作业成本、责任中心、风险与红线、同口径复盘与决策报告——责任与风险意识决定最终绩效"),
+    ]
+    r1, r2, r3 = st.columns(3)
+    for col, (title, desc) in zip((r1, r2, r3), rhythm):
+        with col:
+            st.markdown(
+                f'<div style="border:1px solid #e3e8f2;border-radius:10px;padding:12px 14px;'
+                'height:118px;background:#ffffff">'
+                f'<div style="font-weight:700;font-size:15px;color:#0b3d91">{title}</div>'
+                f'<div style="font-size:13.5px;color:#444;line-height:1.6;margin-top:6px">{desc}</div></div>',
+                unsafe_allow_html=True)
+
+    with st.expander("📖 实验介绍（教学目标 · 原理 · 过程与方法）", expanded=False):
+        st.markdown("**🎯 实验教学目标（学完能干什么）**\n\n"
+                    "学生以“成本会计→车间核算员→财务经理→管理会计师”身份，在参数化制造工厂中把"
+                    "“材料采购—领料—费用归集—产品核算—两法对比—标准/作业/责任成本—经营决策”全链路跑通，"
+                    "最终能**算对成本、解释差异、用成本做决策**。")
+        st.markdown("**⚙️ 实验原理**\n\n"
+                    "以“单位成本—经营利润—成本偏离指数—责任绩效分”四指标为主线，每步决策实时重算；"
+                    "红线机制（成本造假/虚增存货/责任甩锅，两次触发制）+ 5 类风险事件随机触发 + AI 金点子评判"
+                    "（创新 30% · 可操作 30% · 成本影响 25% · 业财融合 15%）。")
+        st.markdown("**🧭 过程与方法**\n\n"
+                    "28 步分三模块循序渐进：卡片式决策、滑块参数、同口径复盘；3 次悔棋可回退前 5 步，"
+                    "除红线检查外均可返回修改；形成“课前预热—课中实训—课后复盘”闭环。")
+
+    st.divider()
+    left, center, right = st.columns([1, 2, 1])
+    if center.button("🚀 开始实验（进入第 1 步）", type="primary", key="start_btn", width="stretch"):
+        s.landing = False
+        st.rerun()
+
+
 def set_step(no):
     st.session_state.current_step = no
 
 
 def render_main():
     s = st.session_state
-    st.title("智控成本 · 数创价值")
-    st.caption("制造企业全流程成本管理虚拟仿真决策实训 · 西南财经大学天府学院《成本管理会计 ACT1415A》课程组 · "
-               f"{APP_VERSION}")
     if s.terminated:
         st.error("🚨 实验终止：因两次触碰同一红线，本次实验按失败处理。")
         st.info("系统判定依据：成本造假（材料单价>20）/ 虚增存货（在产品>完工×2）/ 责任甩锅（责任全推他人）。")
@@ -1251,6 +1326,12 @@ def render_main():
                 del st.session_state[k]
             st.rerun()
         return
+    if s.landing:
+        render_landing()
+        return
+    st.title("智控成本 · 数创价值")
+    st.caption("制造企业全流程成本管理虚拟仿真决策实训 · 西南财经大学天府学院《成本管理会计 ACT1415A》课程组 · "
+               f"{APP_VERSION}")
     completed = sum(1 for i in range(1, STEP_FULL + 1) if i in s.decisions)
     st.progress(completed / STEP_FULL)
     st.caption(f"进度：已完成 {completed} / {STEP_FULL} 步 · 当前第 {s.current_step} 步 · "

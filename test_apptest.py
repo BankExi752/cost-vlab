@@ -15,7 +15,7 @@ def check(name, cond, detail=""):
 
 
 def all_text(at):
-    """聚合所有元素序列文本（markdown + success + info + caption + warning + error + metric）"""
+    """聚合所有元素序列文本（markdown + success + info + caption + warning + error + metric + expander.label）"""
     parts = [str(e.value) for e in at.markdown]
     parts += [str(e.value) for e in at.success]
     parts += [str(e.value) for e in at.info]
@@ -24,6 +24,7 @@ def all_text(at):
     parts += [str(e.value) for e in at.error]
     parts += [str(m.value) for m in at.metric]
     parts += [str(m.value) for m in at.sidebar.metric]
+    parts += [str(e.label) for e in at.expander]
     return " | ".join(parts)
 
 
@@ -43,8 +44,17 @@ def app_final_score(at):
 
 at = AppTest.from_file("main_app.py", default_timeout=120)
 at.run()
-check("首页标题渲染", any("智控成本" in str(t.value) for t in at.title),
-      str(at.title))
+landing_text = all_text(at) + " | " + " | ".join(str(t.value) for t in at.title)
+check("着陆页标题渲染", "智控成本" in landing_text, landing_text[:150])
+check("实验地图渲染", "实验地图" in landing_text, landing_text[:300])
+check("逻辑主线渲染", "逻辑主线" in landing_text, landing_text[:300])
+check("实训节奏渲染", "实训节奏" in landing_text, landing_text[:300])
+check("实验介绍渲染", "实验介绍" in landing_text, landing_text[:300])
+check("开始实验按钮存在", at.button(key="start_btn").value is not None,
+      str(at.button(key="start_btn")))
+click(at, "start_btn")
+check("开始后进入第1步", at.session_state["current_step"] == 1,
+      f"实际={at.session_state.get('current_step')}")
 check("第1步内容渲染", "第 1 步" in all_text(at), all_text(at)[:150])
 check("当前为第1步", at.session_state["current_step"] == 1)
 
