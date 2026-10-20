@@ -4,12 +4,12 @@
 Streamlit 教学应用 V4.0（2026 中国仿真创新应用大赛 · 仿真教学应用赛道 · 虚拟仿真实验设计方向）
 
 依据《智控成本数创价值_设计方案_V4.0》实现：
-- 28 步交互式仿真实验（模块A 成本核算基本功 10 步 / 模块B 两法对比与决策 9 步 / 模块C 作业责任与降本 9 步）；
+- 25 步决策主线交互式仿真实验（模块A 成本核算基本功 10 步 / 模块B 两法对比与决策 9 步 / 模块C 作业责任与降本 6 步）+ 复盘报告/能力画像/经营决策报告三大输出板块；
 - 算账闭环四指标：单位产品成本、经营利润、成本偏离指数、责任绩效分，每步操作后实时刷新；
 - 红线机制（3 条 · 两次触发制）：成本造假 / 虚增存货 / 责任甩锅；
 - 5 类风险事件随机触发（含二次确认），参数化决策影响成本与利润；
 - AI 能力（本地规则引擎降级）：金点子方案评判（四维加权）+ 每步提分建议；
-- 全局易用性：28 步进度导航、右侧四指标面板、里程碑鼓励、3 次悔棋、8 个小白化词条、
+- 全局易用性：25 步进度导航、右侧四指标面板、里程碑鼓励、3 次悔棋、8 个小白化词条、
   同口径复盘、五维能力雷达、经营决策报告书、教师模式（成绩导出）。
 
 算账引擎为模块级纯函数（可冒烟测试）；UI 层以 st.session_state 驱动。
@@ -64,6 +64,9 @@ STEPS = [
     (28, "经营决策报告",                  "C", "输出报告",   "终结性评分"),
 ]
 STEP_FULL = 28
+# 决策台主线步骤 = 第 1-25 步（26/27/28 为独立输出板块，不属于步骤导航）
+MAIN_STEPS = [s0 for s0 in STEPS if s0[0] <= 25]
+MAIN_FULL = 25
 
 # 侧边栏导航短名（简短好看，pills 短标签用）
 NAV_SHORT = {
@@ -77,13 +80,14 @@ NAV_SHORT = {
 MODULE_ACCENTS = {"A": "#0b3d91", "B": "#1f6feb", "C": "#2e9e5b"}
 
 # 顶部板块导航（参照"实验导览/决策台/复盘报告"式独立板块布局）
-PAGES = [("🗺️ 实验导览", "导览"), ("🧭 决策台（24步）", "决策台"),
+# 主线决策台 = 第 1-25 步（24 步决策 + 第 25 步红线检查）；26/27/28 为独立输出板块
+PAGES = [("🗺️ 实验导览", "导览"), ("🧭 决策台（25步）", "决策台"),
          ("📋 复盘报告", "复盘"), ("🛡️ 能力画像", "画像"), ("📊 经营决策报告", "报告")]
 PAGE_BY_LABEL = dict(PAGES)                    # 板块名 → page id
 PAGE_BY_ID = dict((p, t) for t, p in PAGES)    # page id → 板块名
-BOARD_NAMES = {26: "📋 复盘报告 · 第 26 步（同口径复盘）",
-               27: "🛡️ 能力画像 · 第 27 步（五维雷达）",
-               28: "📊 经营决策报告 · 第 28 步（定价/排产/考核）"}
+BOARD_NAMES = {26: "📋 复盘报告 · 同口径复盘",
+               27: "🛡️ 能力画像 · 五维雷达",
+               28: "📊 经营决策报告 · 定价/排产/考核建议"}
 
 
 def _nav_cb(page_id):
@@ -95,11 +99,11 @@ def _nav_cb(page_id):
 def main_done():
     """主线（决策台 1-25 步）是否完成"""
     return all(i in st.session_state.decisions for i in range(1, 26))
-MILESTONES = {5: "已完成 5/28！你已掌握成本核算的开局要领。",
-              10: "已完成 10/28！你已掌握成本核算核心方法，进入两法对比阶段。",
-              15: "已完成 15/28！两法对比与差异分析已过半，继续加油。",
-              20: "已完成 20/28！作业成本与责任考核阶段开始发力。",
-              25: "已完成 25/28！风险与红线均已考核，冲刺复盘与决策报告。"}
+MILESTONES = {5: "已完成 5/25！你已掌握成本核算的开局要领。",
+              10: "已完成 10/25！你已掌握成本核算核心方法，进入两法对比阶段。",
+              15: "已完成 15/25！两法对比与差异分析已过半，继续加油。",
+              20: "已完成 20/25！作业成本与责任考核阶段开始发力。",
+              25: "已完成 25/25！决策台主线收官，前往复盘报告/能力画像/经营决策报告三大板块完成闭环输出。"}
 
 RED_LINE_NAMES = ["成本造假", "虚增存货", "责任甩锅"]
 RED_LINE_TRIGGER_STEP = {"成本造假": 3, "虚增存货": 9, "责任甩锅": 22}
@@ -286,7 +290,7 @@ def ai_step_advice(step, before, after, cfg, decisions):
     if step == 20 and not decisions.get(20, {}).get("ok", True):
         out.append("步20作业动因选择与作业特性不匹配导致间接费用重摊失真，请按'成本动因'重新选择。")
     if not out:
-        out.append("四项指标平稳，可把精力放到步19金点子与步28经营决策的创新性上，冲刺更高评价。")
+        out.append("四项指标平稳，可把精力放到金点子与经营决策报告的创新性上，冲刺更高评价。")
     return out[:3]
 
 
@@ -676,7 +680,7 @@ def render_step1():
     s = st.session_state
     prev = s.decisions.get(1, {})
     step_header(1, "开局签约 · 目标利润率")
-    st.markdown("**场景**：与董事会签订年度经营目标。请设定本财年的目标利润率，它将作为步28经营决策的考核基准。")
+    st.markdown("**场景**：与董事会签订年度经营目标。请设定本财年的目标利润率，它将作为「经营决策报告」板块的考核基准。")
     margin = st.slider("目标利润率（%）", 5, 30, int(prev.get("target_margin", 0.15) * 100), 1,
                        help="建议 10%-20%。目标定得过高会挤压后续决策空间，过低则考核无挑战。",
                        key="s1_margin")
@@ -1150,8 +1154,8 @@ def render_step25():
 def render_step26():
     s = st.session_state
     prev = s.decisions.get(26, {})
-    step_header(26, "同口径复盘")
-    st.markdown("**场景**：对比本轮与上一轮实验的同口径指标，识别改进点。")
+    st.subheader("📋 同口径复盘")
+    st.caption("独立板块 · 对比本轮与上一轮实验的同口径指标，识别改进点")
     cur = s.indicators
     if cur is None:
         st.info("尚未完成任何步骤，无可复盘数据。")
@@ -1174,7 +1178,7 @@ def render_step26():
         if cur["perf"] > p["perf"]:
             adv.append("责任绩效改善，差异归属与责任划分更到位。")
         if not adv:
-            adv.append("与上轮持平：可在步19金点子与步28决策报告中寻求突破。")
+            adv.append("与上轮持平：可在金点子与经营决策报告中寻求突破。")
         st.info("改进建议：" + " ".join(adv))
     else:
         # 首轮实验：展示本轮各步骤四指标演化明细，作为下次复盘的基准
@@ -1194,8 +1198,8 @@ def render_step26():
 def render_step27():
     s = st.session_state
     prev = s.decisions.get(27, {})
-    step_header(27, "能力画像 · 五维雷达")
-    st.markdown("**场景**：系统根据你的过程表现生成五维能力画像（终结性评价依据）。")
+    st.subheader("🛡️ 能力画像 · 五维雷达")
+    st.caption("独立板块 · 系统根据你的过程表现生成五维能力画像（终结性评价依据）")
     compute_scores()
     st.plotly_chart(plot_radar(s.scores), width="stretch")
     st.caption("维度说明：核算准确（步10/11/12）· 成本分析（步6/8/14/17）· 决策能力（步15/21/24）· "
@@ -1273,8 +1277,8 @@ def final_score():
 
 def render_step28():
     s = st.session_state
-    step_header(28, "经营决策报告")
-    st.markdown("**场景**：基于全程数据生成定价、排产、考核建议书与终结性评分。")
+    st.subheader("📊 经营决策报告")
+    st.caption("独立板块 · 基于全程数据生成定价、排产、考核建议书与终结性评分")
     report = build_report()
     st.text(report)
     st.download_button("📥 下载报告（TXT）", report,
@@ -1314,7 +1318,7 @@ def _nav_side_cb(mod_id):
 def render_sidebar():
     s = st.session_state
     st.sidebar.markdown("### 🎯 智控成本 · 数创价值")
-    st.sidebar.caption("选择决策并完成 28 步实验 · 四指标实时刷新")
+    st.sidebar.caption("选择决策并完成 25 步决策主线 · 四指标实时刷新")
     st.sidebar.markdown("## 🎯 四指标实时面板")
     ind = s.indicators
     if ind is None:
@@ -1328,11 +1332,11 @@ def render_sidebar():
                             f"<span style='color:{dev_color}'>● {ind['deviation_color']}</span>",
                             unsafe_allow_html=True)
         st.sidebar.metric("责任绩效分", f"{ind['perf']:.1f} / 100")
-    completed = sum(1 for i in range(1, STEP_FULL + 1) if i in s.decisions)
-    st.sidebar.progress(completed / STEP_FULL)
-    st.sidebar.caption(f"已完成 {completed} / {STEP_FULL} · 当前第 {s.current_step} 步")
+    completed = sum(1 for i in range(1, MAIN_FULL + 1) if i in s.decisions)
+    st.sidebar.progress(completed / MAIN_FULL)
+    st.sidebar.caption(f"已完成 {completed} / {MAIN_FULL} · 当前第 {s.current_step} 步")
     elapsed = int(time.time() - s.start_time)
-    remain = int(elapsed / max(1, completed) * (STEP_FULL - completed)) if completed else 0
+    remain = int(elapsed / max(1, completed) * (MAIN_FULL - completed)) if completed else 0
     st.sidebar.caption(f"已用 {elapsed // 60} 分 {elapsed % 60} 秒 · 预计剩余约 {remain // 60} 分")
     # 红线状态
     with st.sidebar.expander("🚨 红线状态", expanded=False):
@@ -1352,9 +1356,9 @@ def render_sidebar():
     # 模块导航：三模块色条 + pills 短标签（简短好看）+ 彩色状态提醒
     st.sidebar.markdown("### 🧭 步骤导航")
     st.sidebar.caption("点已完成步骤可回看 · 未完成步骤按顺序走")
-    # 28 步彩色状态点阵：绿=已完成 / 蓝=当前 / 灰=未完成（悬停显示步骤名）
+    # 25 步彩色状态点阵（仅决策台主线）：绿=已完成 / 蓝=当前 / 灰=未完成（悬停显示步骤名）
     dot_html = []
-    for no, name, _, _, _ in STEPS:
+    for no, name, _, _, _ in MAIN_STEPS:
         if no in s.decisions:
             color, mark, tip = "#2e9e5b", "✓", f"已完成 · {no}. {name}"
         elif no == s.current_step:
@@ -1369,9 +1373,9 @@ def render_sidebar():
         f'<div style="margin:4px 0 2px" title="绿=已完成 · 蓝=当前 · 灰=未完成">{"".join(dot_html)}</div>',
         unsafe_allow_html=True)
     for mod_id, mod_name, _ in MODULES:
-        steps_in_mod = [s0 for s0 in STEPS if s0[2] == mod_id]
+        steps_in_mod = [s0 for s0 in MAIN_STEPS if s0[2] == mod_id]
         accent = MODULE_ACCENTS[mod_id]
-        done_in_mod = sum(1 for no, _, m, _, _ in STEPS if m == mod_id and no in s.decisions)
+        done_in_mod = sum(1 for no, _, m, _, _ in MAIN_STEPS if m == mod_id and no in s.decisions)
         st.sidebar.markdown(
             f"<div style='border-left:4px solid {accent};padding:2px 8px;margin:8px 0 2px;"
             f"font-weight:700;color:{accent};font-size:13px'>{mod_name}"
@@ -1389,7 +1393,7 @@ def render_sidebar():
         st.sidebar.caption(f"综合评分：{final_score():.1f} / 100")
         df = pd.DataFrame([
             {"步骤": i, "名称": name, "完成": "✔" if i in s.decisions else "—"}
-            for i, name, _, _, _ in STEPS])
+            for i, name, _, _, _ in MAIN_STEPS])
         st.sidebar.dataframe(df, width="stretch", hide_index=True)
         if s.decisions:
             dec_rows = [{"步骤": k, "决策": str(v)[:120]} for k, v in sorted(s.decisions.items())]
@@ -1414,14 +1418,14 @@ def render_landing():
         f'{APP_VERSION} · 3 学时（每模块 1 课时）</div></div>',
         unsafe_allow_html=True)
 
-    st.markdown("## 🗺️ 实验地图：28 步决策全流程（从上到下依次完成）")
+    st.markdown("## 🗺️ 实验地图：25 步决策主线 + 3 大输出板块（从上到下依次完成）")
     map_items = [
         ("模块A · 成本核算基本功", "步骤 1-10", "#0b3d91",
          "把成本算对——材料采购、费用归集、约当产量与品种法成本计算单，打牢核算底子"),
         ("模块B · 两法对比与决策", "步骤 11-19", "#1f6feb",
          "把差异说清——分批/分步法、变动与完全成本法对比、量本利与标准成本差异，方法决定口径"),
-        ("模块C · 作业责任与降本", "步骤 20-28", "#2e9e5b",
-         "把降本做实——作业成本、责任中心、风险与红线、同口径复盘与经营决策报告"),
+        ("模块C · 作业责任与降本", "步骤 20-25", "#2e9e5b",
+         "把降本做实——作业成本、责任中心、风险与红线；主线收官后在复盘/画像/报告三大板块完成闭环输出"),
     ]
     c1, c2, c3 = st.columns(3)
     for col, (title, span, accent, desc) in zip((c1, c2, c3), map_items):
@@ -1435,8 +1439,8 @@ def render_landing():
                 unsafe_allow_html=True)
 
     st.markdown("💡 **逻辑主线**：先把成本算对、把家底摸清（模块A），再用两法对比与差异诊断看清利润背后的口径（模块B），"
-                "最后用作业成本、责任考核把降本落到责任人头上（模块C）。前 19 步决定四指标的底子，后 9 步决定责任与绩效——"
-                "能算对成本、解释差异、用成本做决策，才是完整的成本管理闭环。")
+                "最后用作业成本、责任考核把降本落到责任人头上（模块C）。前 19 步决定四指标的底子，后 6 步决定责任与绩效——"
+                "主线收官后，进入复盘报告 / 能力画像 / 经营决策报告三大输出板块，完成“能算对成本、解释差异、用成本做决策”的完整闭环。")
 
     st.markdown("## 🔄 实训节奏（为什么分三模块？）")
     rhythm = [
@@ -1445,7 +1449,7 @@ def render_landing():
         ("第 2 阶段 · 把差异说清",
          "两法对比、量本利与产销情境、标准成本差异归属——制造挫败感，暴露“方法选错就亏”的认知误区"),
         ("第 3 阶段 · 把降本做实",
-         "作业成本、责任中心、风险与红线、同口径复盘与决策报告——责任与风险意识决定最终绩效"),
+         "作业成本、责任中心、风险与红线——责任与风险意识决定最终绩效；主线收官后进入复盘/画像/报告三大输出板块"),
     ]
     r1, r2, r3 = st.columns(3)
     for col, (title, desc) in zip((r1, r2, r3), rhythm):
@@ -1467,8 +1471,9 @@ def render_landing():
                     "红线机制（成本造假/虚增存货/责任甩锅，两次触发制）+ 5 类风险事件随机触发 + AI 金点子评判"
                     "（创新 30% · 可操作 30% · 成本影响 25% · 业财融合 15%）。")
         st.markdown("**🧭 过程与方法**\n\n"
-                    "28 步分三模块循序渐进：卡片式决策、滑块参数、同口径复盘；3 次悔棋可回退前 5 步，"
-                    "除红线检查外均可返回修改；形成“课前预热—课中实训—课后复盘”闭环。")
+                    "25 步决策主线分三模块循序渐进：卡片式决策、滑块参数；主线收官后进入复盘报告/能力画像/经营决策报告"
+                    "三大独立输出板块，形成“课前预热—课中实训—课后复盘”闭环。3 次悔棋可回退前 5 步，"
+                    "除红线检查外均可返回修改。")
 
     st.divider()
     left, center, right = st.columns([1, 2, 1])
@@ -1523,8 +1528,8 @@ def render_main():
     if s.current_step >= 26:
         st.title("🎉 决策台主线已完成")
         st.info("第 1-25 步已全部完成。后续三个板块为独立输出，请通过**顶部板块导航**进入："
-                "📋 复盘报告（第 26 步 · 同口径复盘）· 🛡️ 能力画像（第 27 步 · 五维雷达）· "
-                "📊 经营决策报告（第 28 步 · 定价/排产/考核建议与终结性评分）。")
+                "📋 复盘报告（同口径复盘）· 🛡️ 能力画像（五维雷达）· "
+                "📊 经营决策报告（定价/排产/考核建议与终结性评分）。")
         c1, c2, c3 = st.columns(3)
         with c1:
             st.button("📋 复盘报告", type="primary", key="go_board_26", width="stretch",
@@ -1539,8 +1544,8 @@ def render_main():
     st.title("智控成本 · 数创价值")
     st.caption("制造企业全流程成本管理虚拟仿真决策实训 · 西南财经大学天府学院《成本管理会计 ACT1415A》课程组 · "
                f"{APP_VERSION} · 决策台（第 1-25 步）")
-    completed = sum(1 for i in range(1, STEP_FULL + 1) if i in s.decisions)
-    st.progress(completed / STEP_FULL)
+    completed = sum(1 for i in range(1, MAIN_FULL + 1) if i in s.decisions)
+    st.progress(completed / MAIN_FULL)
     if s.milestone:
         st.success(s.milestone[1])
     # AI 建议（上一步）
