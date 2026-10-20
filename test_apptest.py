@@ -112,18 +112,39 @@ check("风险事件已记录", "event_id" in at.session_state["decisions"].get(2
 
 # 步 25 红线检查
 click(at, "s25_btn")
-check("步25后进入第26步", at.session_state["current_step"] == 26,
+check("步25后主线完成（current_step=26）", at.session_state["current_step"] == 26,
       f"实际={at.session_state.get('current_step')}")
+txt25 = all_text(at) + " | " + " | ".join(str(t.value) for t in at.title)
+check("决策台主线完成提示页", "决策台主线已完成" in txt25, txt25[:200])
+check("主线完成入口含复盘报告", "复盘报告" in txt25, txt25[:300])
 
-# 步 26 复盘 / 步 27 画像 / 步 28 报告
+# ===== 步 26/27/28 独立板块（顶部导航切换）=====
+at.pills(key="top_nav").set_value("📋 复盘报告")
+at.run()
+check("顶部导航切到复盘板块", at.session_state["page"] == "复盘",
+      f"实际={at.session_state.get('page')}")
+txt26 = all_text(at) + " | " + " | ".join(str(t.value) for t in at.title)
+check("复盘板块渲染（同口径复盘）", "同口径复盘" in txt26, txt26[:200])
 click(at, "s26_btn")
-check("步26后进入第27步", at.session_state["current_step"] == 27,
-      f"实际={at.session_state.get('current_step')}")
+check("步26确认已记录", 26 in at.session_state["decisions"],
+      f"decisions={list(at.session_state['decisions'])[-5:]}")
+
+at.pills(key="top_nav").set_value("🛡️ 能力画像")
+at.run()
+check("顶部导航切到画像板块", at.session_state["page"] == "画像",
+      f"实际={at.session_state.get('page')}")
+txt27 = all_text(at) + " | " + " | ".join(str(t.value) for t in at.title)
+check("画像板块渲染（能力画像）", "能力画像" in txt27, txt27[:200])
 click(at, "s27_btn")
-check("步27后进入第28步", at.session_state["current_step"] == 28,
-      f"实际={at.session_state.get('current_step')}")
-txt28 = all_text(at)
-check("步28报告含'经营决策报告'", "经营决策报告" in txt28 or "综合评分" in txt28, txt28[:200])
+check("步27确认已记录", 27 in at.session_state["decisions"],
+      f"decisions={list(at.session_state['decisions'])[-5:]}")
+
+at.pills(key="top_nav").set_value("📊 经营决策报告")
+at.run()
+check("顶部导航切到报告板块", at.session_state["page"] == "报告",
+      f"实际={at.session_state.get('page')}")
+txt28 = all_text(at) + " | " + " | ".join(str(t.value) for t in at.title)
+check("报告板块含'经营决策报告'", "经营决策报告" in txt28 or "综合评分" in txt28, txt28[:200])
 check("五维画像已计算", set(at.session_state["scores"].keys()) == {
     "核算准确", "成本分析", "决策能力", "业财融合", "创新意识"},
     at.session_state["scores"])

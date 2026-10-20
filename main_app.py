@@ -75,6 +75,26 @@ NAV_SHORT = {
     24: "风险应对", 25: "红线检查", 26: "复盘", 27: "能力画像", 28: "决策报告",
 }
 MODULE_ACCENTS = {"A": "#0b3d91", "B": "#1f6feb", "C": "#2e9e5b"}
+
+# 顶部板块导航（参照"实验导览/决策台/复盘报告"式独立板块布局）
+PAGES = [("🗺️ 实验导览", "导览"), ("🧭 决策台（24步）", "决策台"),
+         ("📋 复盘报告", "复盘"), ("🛡️ 能力画像", "画像"), ("📊 经营决策报告", "报告")]
+PAGE_BY_LABEL = dict(PAGES)                    # 板块名 → page id
+PAGE_BY_ID = dict((p, t) for t, p in PAGES)    # page id → 板块名
+BOARD_NAMES = {26: "📋 复盘报告 · 第 26 步（同口径复盘）",
+               27: "🛡️ 能力画像 · 第 27 步（五维雷达）",
+               28: "📊 经营决策报告 · 第 28 步（定价/排产/考核）"}
+
+
+def _nav_cb(page_id):
+    """板块切换回调：在 widget 实例化前运行，可安全更新导航高亮"""
+    st.session_state.page = page_id
+    st.session_state["top_nav"] = PAGE_BY_ID[page_id]
+
+
+def main_done():
+    """主线（决策台 1-25 步）是否完成"""
+    return all(i in st.session_state.decisions for i in range(1, 26))
 MILESTONES = {5: "已完成 5/28！你已掌握成本核算的开局要领。",
               10: "已完成 10/28！你已掌握成本核算核心方法，进入两法对比阶段。",
               15: "已完成 15/28！两法对比与差异分析已过半，继续加油。",
@@ -294,7 +314,7 @@ def init_state():
     if "started" in s:
         return
     s.started = True
-    s.landing = True          # 着陆页（实验地图/逻辑主线/实训节奏/实验介绍）门控
+    s.page = "导览"           # 顶部板块：导览 / 决策台 / 复盘 / 画像 / 报告
     s.current_step = 1
     s.decisions = {}
     s.step_ok = {}
@@ -1059,6 +1079,16 @@ def finish_button_go(no, decision, ok=None):
     st.rerun()
 
 
+def board_finish(no, decision, ok=None):
+    """独立板块完成：记账但不推进主线 current_step"""
+    s = st.session_state
+    s.decisions[no] = decision
+    if ok is not None:
+        s.step_ok[no] = ok
+    finalize(no)
+    st.rerun()
+
+
 def render_step24():
     s = st.session_state
     prev = s.decisions.get(24, {})
@@ -1157,8 +1187,8 @@ def render_step26():
                 "绩效分": f"{h['perf']:.1f}"} for h in s.history])
             st.dataframe(df2, width="stretch", hide_index=True)
         st.info("本轮为第 1 轮实验：暂无上轮对比数据，以上为本轮各步骤指标演化；完成后再开新轮次，即可在同口径下做两轮对比。")
-    if st.button("✅ 完成复盘，进入下一步", type="primary", key="s26_btn"):
-        finish_button_go(26, {"reviewed": True})
+    if st.button("✅ 确认复盘完成", type="primary", key="s26_btn"):
+        board_finish(26, {"reviewed": True})
 
 
 def render_step27():
@@ -1170,8 +1200,8 @@ def render_step27():
     st.plotly_chart(plot_radar(s.scores), width="stretch")
     st.caption("维度说明：核算准确（步10/11/12）· 成本分析（步6/8/14/17）· 决策能力（步15/21/24）· "
                "业财融合（步13/16/20/22）· 创新意识（步19）")
-    if st.button("✅ 已查看画像，进入决策报告", type="primary", key="s27_btn"):
-        finish_button_go(27, {"captured": True})
+    if st.button("✅ 确认已查看画像", type="primary", key="s27_btn"):
+        board_finish(27, {"captured": True})
 
 
 def build_report():
@@ -1253,13 +1283,34 @@ def render_step28():
     if s.final_report is None:
         s.final_report = report
     st.success(f"实验完成！综合评分 **{final_score():.1f} / 100**。可回到任意已完成步骤复查，或重新开始。")
-    if st.button("✅ 完成本步", type="primary", key="s28_btn"):
-        finish_button_go(28, {"report_done": True, "report": report})
+    if st.button("✅ 确认完成（实验结束）", type="primary", key="s28_btn"):
+        board_finish(28, {"report_done": True, "report": report})
 
 
 # ============================================================================
 # 六、全局组件（导航 / 指标面板 / 词条 / 教师模式）
 # ============================================================================
+def _nav_side_cb(mod_id):
+    """侧边栏步骤导航 on_change 回调：回看已完成步骤 / 26-28 切板块"""
+    sel = st.session_state.get(f"nav_pills_{mod_id}")
+    if not sel:
+        return
+    no = int(sel.split(" ")[0])
+    s = st.session_state
+    last = s.get(f"_nav_last_{mod_id}")
+    if no in s.decisions or no == s.current_step:
+        if last != no:
+            s[f"_nav_last_{mod_id}"] = no
+            if no != s.current_step:
+                if no >= 26:
+                    _nav_cb({26: "复盘", 27: "画像", 28: "报告"}[no])
+                else:
+                    s.current_step = no
+    elif last != -no:
+        s[f"_nav_last_{mod_id}"] = -no
+        st.sidebar.toast(f"第 {no} 步尚未完成，请按顺序完成前面的步骤后再跳转")
+
+
 def render_sidebar():
     s = st.session_state
     st.sidebar.markdown("### 🎯 智控成本 · 数创价值")
@@ -1328,20 +1379,9 @@ def render_sidebar():
             f"已完成 {done_in_mod}/{len(steps_in_mod)}</span></div>",
             unsafe_allow_html=True)
         labels = [f"{no} {NAV_SHORT[no]}" for no, _, _, _, _ in steps_in_mod]
-        sel = st.sidebar.pills("跳转", labels, key=f"nav_pills_{mod_id}",
-                               selection_mode="single", label_visibility="collapsed")
-        if sel:
-            no = int(sel.split(" ")[0])
-            last = s.get(f"_nav_last_{mod_id}")
-            if no in s.decisions or no == s.current_step:
-                if last != no:
-                    s[f"_nav_last_{mod_id}"] = no
-                    if no != s.current_step:
-                        s.current_step = no
-                        st.rerun()
-            elif last != -no:
-                s[f"_nav_last_{mod_id}"] = -no
-                st.sidebar.toast(f"第 {no} 步尚未完成，请按顺序完成前面的步骤后再跳转")
+        st.sidebar.pills("跳转", labels, key=f"nav_pills_{mod_id}",
+                         selection_mode="single", label_visibility="collapsed",
+                         on_change=_nav_side_cb, args=(mod_id,))
     # 教师模式
     teacher = st.sidebar.checkbox("👩‍🏫 教师模式", key="teacher_mode")
     if teacher:
@@ -1432,9 +1472,35 @@ def render_landing():
 
     st.divider()
     left, center, right = st.columns([1, 2, 1])
-    if center.button("🚀 开始实验（进入第 1 步）", type="primary", key="start_btn", width="stretch"):
-        s.landing = False
-        st.rerun()
+    center.button("🚀 开始实验（进入第 1 步）", type="primary", key="start_btn",
+                  width="stretch", on_click=_nav_cb, args=("决策台",))
+
+
+def render_top_nav():
+    """顶部板块导航（参照参考应用：实验导览 / 决策台 / 复盘报告 等独立板块）"""
+    s = st.session_state
+    labels = [t for t, _ in PAGES]
+    cur = PAGE_BY_ID[s.page]
+    sel = st.pills("板块导航", labels, key="top_nav", default=cur,
+                   label_visibility="collapsed", width="stretch")
+    if sel:
+        page_id = PAGE_BY_LABEL[sel]
+        if page_id != s.page:
+            s.page = page_id
+            st.rerun()
+
+
+def render_board(step_no):
+    """独立板块页：26 复盘报告 / 27 能力画像 / 28 经营决策报告"""
+    s = st.session_state
+    st.title(BOARD_NAMES[step_no])
+    st.caption("独立板块 · 基于「决策台」主线（第 1-25 步）过程数据自动生成")
+    if not main_done():
+        st.info("主线尚未完成：请先在「🧭 决策台（24步）」完成第 1-25 步，本板块数据才能生成。")
+        st.button("去决策台完成主线", type="primary", key=f"go_decision_{step_no}",
+                  on_click=_nav_cb, args=("决策台",))
+        return
+    {26: render_step26, 27: render_step27, 28: render_step28}[step_no]()
 
 
 def render_main():
@@ -1447,12 +1513,32 @@ def render_main():
                 del st.session_state[k]
             st.rerun()
         return
-    if s.landing:
+    if s.page == "导览":
         render_landing()
+        return
+    if s.page != "决策台":
+        render_board({"复盘": 26, "画像": 27, "报告": 28}[s.page])
+        return
+    # ===== 决策台（主线 1-25）=====
+    if s.current_step >= 26:
+        st.title("🎉 决策台主线已完成")
+        st.info("第 1-25 步已全部完成。后续三个板块为独立输出，请通过**顶部板块导航**进入："
+                "📋 复盘报告（第 26 步 · 同口径复盘）· 🛡️ 能力画像（第 27 步 · 五维雷达）· "
+                "📊 经营决策报告（第 28 步 · 定价/排产/考核建议与终结性评分）。")
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            st.button("📋 复盘报告", type="primary", key="go_board_26", width="stretch",
+                      on_click=_nav_cb, args=("复盘",))
+        with c2:
+            st.button("🛡️ 能力画像", type="primary", key="go_board_27", width="stretch",
+                      on_click=_nav_cb, args=("画像",))
+        with c3:
+            st.button("📊 经营决策报告", type="primary", key="go_board_28", width="stretch",
+                      on_click=_nav_cb, args=("报告",))
         return
     st.title("智控成本 · 数创价值")
     st.caption("制造企业全流程成本管理虚拟仿真决策实训 · 西南财经大学天府学院《成本管理会计 ACT1415A》课程组 · "
-               f"{APP_VERSION}")
+               f"{APP_VERSION} · 决策台（第 1-25 步）")
     completed = sum(1 for i in range(1, STEP_FULL + 1) if i in s.decisions)
     st.progress(completed / STEP_FULL)
     if s.milestone:
@@ -1462,14 +1548,14 @@ def render_main():
         with st.expander(f"🤖 AI 提分建议（第 {s.current_step - 1} 步后）", expanded=False):
             for t in s.ai_advice[s.current_step - 1]:
                 st.markdown(f"- {t}")
-    # 渲染当前步骤
+    # 渲染当前步骤（主线 1-25）
     renderers = {1: render_step1, 2: render_step2, 3: render_step3, 4: render_step4,
                  5: render_step5, 6: render_step6, 7: render_step7, 8: render_step8,
                  9: render_step9, 10: render_step10, 11: render_step11, 12: render_step12,
                  13: render_step13, 14: render_step14, 15: render_step15, 16: render_step16,
                  17: render_step17, 18: render_step18, 19: render_step19, 20: render_step20,
                  21: render_step21, 22: render_step22, 23: render_step23, 24: render_step24,
-                 25: render_step25, 26: render_step26, 27: render_step27, 28: render_step28}
+                 25: render_step25}
     renderers.get(s.current_step, render_step1)()
     # 步骤旁计算器（仅需要计算的步骤显示）
     if s.current_step in CALC_HINTS:
@@ -1485,6 +1571,7 @@ def main():
     st.set_page_config(page_title="智控成本·数创价值——成本管理虚拟仿真决策实训",
                        page_icon="🎯", layout="wide")
     init_state()
+    render_top_nav()
     render_sidebar()
     render_main()
 
