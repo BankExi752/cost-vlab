@@ -1,4 +1,10 @@
 __pycache__/
 *.pyc
-*.txt
+smoke_out.txt
+apptest_out.txt
+push_log*.txt
+sync_count.txt
+git_commit.txt
+st_*.txt
+*.png
 .streamlit/secrets.toml
