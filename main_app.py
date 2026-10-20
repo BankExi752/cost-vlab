@@ -605,11 +605,12 @@ def render_step2():
     opts = ["均衡供应商（推荐⭐）：价格12元/kg·交期5天·质量系数1.0",
             "低价供应商：价格11元/kg·质量系数0.9·返工风险高",
             "优质供应商：价格13.5元/kg·质量系数1.08·交期7天"]
-    sel = st.radio("选择供应商", opts, index=0,
+    opt_key = {0: "均衡供应商", 1: "低价供应商", 2: "优质供应商"}
+    prev_key = prev.get("supplier", "均衡供应商")
+    idx2 = next((i for i, k in opt_key.items() if k == prev_key), 0)
+    sel = st.radio("选择供应商", opts, index=idx2,
                    format_func=lambda x: x, key="s2_sup")
-    sup_key = {"均衡供应商（推荐⭐）：价格12元/kg·交期5天·质量系数1.0": "均衡供应商",
-               "低价供应商：价格11元/kg·质量系数0.9·返工风险高": "低价供应商",
-               "优质供应商：价格13.5元/kg·质量系数1.08·交期7天": "优质供应商"}[sel]
+    sup_key = opt_key[opts.index(sel)]
     st.info(f"当前选择：**{sup_key}** — {SUPPLIERS[sup_key]['desc']}")
     finish_button(2, {"supplier": sup_key})
 
@@ -639,7 +640,8 @@ def render_step4():
     st.markdown("**场景**：原材料投入方式影响月末在产品材料成本的计量。")
     opts = ["一次投入（推荐⭐）：生产开始时全部投入，材料完工程度 100%",
             "陆续投入：随生产进度陆续投入，材料完工程度按 50% 计"]
-    sel = st.radio("选择投料方式", opts, index=0, key="s4_feed")
+    prev_feed = prev.get("feed", "一次投入")
+    sel = st.radio("选择投料方式", opts, index=(0 if prev_feed == "一次投入" else 1), key="s4_feed")
     feed = "一次投入" if "一次投入" in sel else "陆续投入"
     st.info(f"材料约当产量 = 在产品数量 × 材料完工程度（{'100%' if feed == '一次投入' else '50%'}）")
     finish_button(4, {"feed": feed})
@@ -683,7 +685,9 @@ def render_step7():
     opts = ["人工工时（推荐⭐）：车间以人工操作为主，人工工时最能反映费用动因",
             "机器工时：自动化程度高时更合理，本车间自动化程度中等",
             "产量：按完工产量平均分摊，适用于单一品种稳定生产"]
-    sel = st.radio("选择分摊基数", opts, index=0, key="s7_base")
+    prev_base = prev.get("base", "人工工时")
+    idx7 = {"人工工时": 0, "机器工时": 1, "产量": 2}.get(prev_base, 0)
+    sel = st.radio("选择分摊基数", opts, index=idx7, key="s7_base")
     base = "人工工时" if "人工工时" in sel else ("机器工时" if "机器工时" in sel else "产量")
     st.info(f"当前基准：**{base}**。本车间以人工操作为主，人工工时口径最合理。")
     finish_button(7, {"base": base})
@@ -695,7 +699,9 @@ def render_step8():
     step_header(8, "辅助生产分配")
     st.markdown("**场景**：供电车间（6000 元）与供水车间（4000 元）费用需分配到基本生产车间与管理部门。")
     method = st.radio("分配方法", ["直接分配法（推荐⭐）：不考虑辅助车间之间交互",
-                                   "交互分配法：先交互再对外分配"], index=0, key="s8_method")
+                                   "交互分配法：先交互再对外分配"],
+                      index=(0 if prev.get("method", "直接分配法") == "直接分配法" else 1),
+                      key="s8_method")
     m = "直接分配法" if "直接分配法" in method else "交互分配法"
     pct = st.slider("供电车间分配给基本生产车间的比例（%）", 40, 80,
                     int(prev.get("pct", 60)), 5,
@@ -781,7 +787,8 @@ def render_step13():
                 "变动成本法则全额当期损益化。")
     opts = ["完全成本法（推荐⭐）：单位成本含固定制造费用，存货吸收固定成本",
             "变动成本法：固定制造费用全额计入当期损益，利润更贴近现金流"]
-    sel = st.radio("选择成本法", opts, index=0, key="s13_m")
+    prev_method = prev.get("cost_method", "完全成本法")
+    sel = st.radio("选择成本法", opts, index=(0 if prev_method == "完全成本法" else 1), key="s13_m")
     method = "完全成本法" if "完全成本法" in sel else "变动成本法"
     st.info("完全成本法下：利润 = 售价×销量 − 单位成本×销量；变动成本法下：利润 = (售价−单位变动)×销量 − 固定制造费用。")
     finish_button(13, {"cost_method": method})
@@ -817,7 +824,9 @@ def render_step15():
     opts = ["产销平衡（推荐⭐）：产量=销量=300 件，无存货吸收效应",
             "存货增加：销量 250 件，期末存货 50 件（完全成本法下吸收固定成本，利润更高）",
             "销售下滑：销量 200 件，期末存货 100 件"]
-    sel = st.radio("选择产销情境", opts, index=0, key="s15_scen")
+    prev_scen = prev.get("scenario", "产销平衡")
+    idx15 = {"产销平衡": 0, "存货增加": 1, "销售下滑": 2}.get(prev_scen, 0)
+    sel = st.radio("选择产销情境", opts, index=idx15, key="s15_scen")
     scen = "产销平衡" if "产销平衡" in sel else ("存货增加" if "存货增加" in sel else "销售下滑")
     st.info(f"情境：**{scen}**（销量={'300' if scen == '产销平衡' else ('250' if scen == '存货增加' else '200')} 件）")
     finish_button(15, {"scenario": scen})
@@ -831,7 +840,9 @@ def render_step16():
     opts = ["先进先出（FIFO，推荐⭐）：已销成本偏低，当期利润相对较高",
             "加权平均：已销成本居中，利润平稳",
             "个别计价：按实际批次结转，已销成本偏高，利润相对较低"]
-    sel = st.radio("选择存货计价方法", opts, index=0, key="s16_inv")
+    prev_inv = prev.get("inv_method", "先进先出")
+    idx16 = {"先进先出": 0, "加权平均": 1, "个别计价": 2}.get(prev_inv, 0)
+    sel = st.radio("选择存货计价方法", opts, index=idx16, key="s16_inv")
     inv = "先进先出" if "先进先出" in sel else ("加权平均" if "加权平均" in sel else "个别计价")
     finish_button(16, {"inv_method": inv})
 
@@ -863,12 +874,13 @@ def render_step18():
     prev = s.decisions.get(18, {})
     step_header(18, "差异分析 · 责任归属")
     st.markdown("**场景**：把三类成本差异归属到正确的责任中心。选错会放大责任中心超支记录。")
-    o1 = st.radio("价格差异 →", ["采购中心（推荐⭐）：采购价格超支由采购环节负责",
-                                 "生产中心", "销售部"], index=0, key="s18_o1")
-    o2 = st.radio("用量差异 →", ["生产中心（推荐⭐）：材料超耗由生产环节负责",
-                                 "采购中心", "财务部"], index=0, key="s18_o2")
-    o3 = st.radio("效率差异 →", ["车间班组（推荐⭐）：工时效率由一线班组负责",
-                                 "采购中心", "管理层"], index=0, key="s18_o3")
+    o1_opts = ["采购中心（推荐⭐）：采购价格超支由采购环节负责", "生产中心", "销售部"]
+    o2_opts = ["生产中心（推荐⭐）：材料超耗由生产环节负责", "采购中心", "财务部"]
+    o3_opts = ["车间班组（推荐⭐）：工时效率由一线班组负责", "采购中心", "管理层"]
+    idx18 = lambda opts, v: opts.index(v) if v in opts else 0
+    o1 = st.radio("价格差异 →", o1_opts, index=idx18(o1_opts, prev.get("o1")), key="s18_o1")
+    o2 = st.radio("用量差异 →", o2_opts, index=idx18(o2_opts, prev.get("o2")), key="s18_o2")
+    o3 = st.radio("效率差异 →", o3_opts, index=idx18(o3_opts, prev.get("o3")), key="s18_o3")
     ok = ("采购中心" in o1) and ("生产中心" in o2) and ("车间班组" in o3)
     if ok:
         st.success("✔ 三类差异均归属正确，责任中心记录清晰。")
@@ -886,7 +898,7 @@ def render_step19():
     idea = st.text_area("降本增效方案", value=prev.get("idea", ""),
                         height=160, placeholder="例如：引入能耗数字化监控，按班组核算电费并纳入月度绩效，预计月节约 1.2 万元……",
                         key="s19_idea")
-    st.caption("提示：包含具体措施、实施步骤、成本节约金额与责任指标，可获得更高评分。AI 正在分析，约 5 秒（本地规则引擎即时返回）。")
+    st.caption("提示：包含具体措施、实施步骤、成本节约金额与责任指标，可获得更高评分。提交后由本地规则引擎即时判分（无需等待）。")
     if st.button("🤖 提交方案并判分", type="primary", key="s19_btn"):
         if len(idea.strip()) < 12:
             st.error("方案过短（少于 12 字），请补充后再提交。")
@@ -907,10 +919,11 @@ def render_step20():
     prev = s.decisions.get(20, {})
     step_header(20, "作业成本法 · 动因选择")
     st.markdown("**场景**：选择资源动因与作业动因，使间接费用重摊更贴近真实成本动因。")
-    r1 = st.radio("资源动因 → 电费", ["机器工时（推荐⭐）：电费随机器运转消耗",
-                                     "人工工时", "产量"], index=0, key="s20_r1")
-    r2 = st.radio("作业动因 → 质检费用", ["检验批次（推荐⭐）：质检费随检验批次发生",
-                                       "产量", "机器工时"], index=0, key="s20_r2")
+    r1_opts = ["机器工时（推荐⭐）：电费随机器运转消耗", "人工工时", "产量"]
+    r2_opts = ["检验批次（推荐⭐）：质检费随检验批次发生", "产量", "机器工时"]
+    idx20 = lambda opts, v: opts.index(v) if v in opts else 0
+    r1 = st.radio("资源动因 → 电费", r1_opts, index=idx20(r1_opts, prev.get("r1")), key="s20_r1")
+    r2 = st.radio("作业动因 → 质检费用", r2_opts, index=idx20(r2_opts, prev.get("r2")), key="s20_r2")
     ok = ("机器工时" in r1) and ("检验批次" in r2)
     if not ok:
         st.warning("动因选择与作业特性不匹配：间接费用重摊失真，制造费用上浮 4%。")
@@ -925,7 +938,8 @@ def render_step21():
                 "是否改用'批次'作为作业动因？改用可提升核算精度，但短期需投入改造。")
     opts = ["改（推荐⭐）：核算精度提升，制造费用 +2%（短期投入）",
             "不改：短期利润保持，但核算精度下降"]
-    sel = st.radio("你的决策", opts, index=0, key="s21_ch")
+    prev_choice = prev.get("choice", "改")
+    sel = st.radio("你的决策", opts, index=(0 if prev_choice == "改" else 1), key="s21_ch")
     choice = "改" if "改" in sel else "不改"
     finish_button(21, {"choice": choice})
 
@@ -938,7 +952,11 @@ def render_step22():
     opts = ["生产车间→成本中心，销售部→利润中心（推荐⭐）：按可控性划分",
             "生产车间→利润中心，销售部→成本中心：职责错配，考核失真",
             "全部推给他方：把责任全部推给外部/其他部门（触发红线）"]
-    sel = st.radio("责任中心划分", opts, index=0, key="s22_cc")
+    prev_cc = prev.get("center_choice", "生产车间→成本中心，销售部→利润中心")
+    idx22 = {"生产车间→成本中心，销售部→利润中心": 0,
+             "生产车间→利润中心，销售部→成本中心": 1,
+             "全部推给他方": 2}.get(prev_cc, 0)
+    sel = st.radio("责任中心划分", opts, index=idx22, key="s22_cc")
     cc = "生产车间→成本中心，销售部→利润中心" if "生产车间→成本中心" in sel else \
         ("生产车间→利润中心，销售部→成本中心" if "利润中心" in sel else "全部推给他方")
     if cc == "全部推给他方":
@@ -984,15 +1002,28 @@ def render_step24():
     step_header(24, "风险事件应对")
     st.markdown(f"**{event['name']}**\n\n{event['desc']}")
     opts = [f"{o['label']}：{o['desc']}" for o in event["options"]]
-    sel = st.radio("应对决策", opts, index=0, key="s24_sel")
+    idx24 = next((i for i, o in enumerate(event["options"]) if o["label"] == prev.get("choice")), 0)
+    sel = st.radio("应对决策", opts, index=idx24, key="s24_sel")
     idx = opts.index(sel)
     opt = event["options"][idx]
+    # 真正的二次确认：确认键随（事件+当前选项）变化，改选项或离开即复位
+    if s.get("step24_confirm_key") != (s.risk_event_id, sel):
+        s.step24_confirm = False
+        s.step24_confirm_key = (s.risk_event_id, sel)
     st.warning("该决策将影响后续成本与利润，且不可反悔。请二次确认。")
-    if st.button("⚠️ 确认该决策（二次确认）", type="primary", key="s24_btn"):
-        fx = dict(opt["fx"])
-        q = opt["q"]
-        finish_button_go(24, {"event_id": event["id"], "choice": opt["label"],
-                              "fx": fx, "choice_quality": q})
+    if not s.step24_confirm:
+        if st.button("⚠️ 确认该决策（一次确认）", type="primary", key="s24_btn"):
+            s.step24_confirm = True
+            st.rerun()
+    else:
+        st.error(f"即将执行：**{opt['label']}** —— 请最后确认")
+        if st.button("🚫 再次确认执行（不可撤销）", type="primary", key="s24_btn2"):
+            fx = dict(opt["fx"])
+            q = opt["q"]
+            s.step24_confirm = False
+            s.step24_confirm_key = None
+            finish_button_go(24, {"event_id": event["id"], "choice": opt["label"],
+                                  "fx": fx, "choice_quality": q})
     if prev.get("choice"):
         st.success(f"已应对：**{prev['choice']}**")
 
@@ -1049,7 +1080,16 @@ def render_step26():
             adv.append("与上轮持平：可在步19金点子与步28决策报告中寻求突破。")
         st.info("改进建议：" + " ".join(adv))
     else:
-        st.info("首轮实验无上轮数据：本轮数据将作为下一次复盘的基准。")
+        # 首轮实验：展示本轮各步骤四指标演化明细，作为下次复盘的基准
+        if s.history:
+            df2 = pd.DataFrame([{
+                "步骤": h["step"],
+                "单位成本（元）": f"{h['unit_cost']:,.2f}",
+                "经营利润（元）": f"{h['profit']:,.0f}",
+                "偏离指数（%）": f"{h['deviation']:.1f}",
+                "绩效分": f"{h['perf']:.1f}"} for h in s.history])
+            st.dataframe(df2, width="stretch", hide_index=True)
+        st.info("本轮为第 1 轮实验：暂无上轮对比数据，以上为本轮各步骤指标演化；完成后再开新轮次，即可在同口径下做两轮对比。")
     if st.button("✅ 完成复盘，进入下一步", type="primary", key="s26_btn"):
         finish_button_go(26, {"reviewed": True})
 
@@ -1334,8 +1374,6 @@ def render_main():
                f"{APP_VERSION}")
     completed = sum(1 for i in range(1, STEP_FULL + 1) if i in s.decisions)
     st.progress(completed / STEP_FULL)
-    st.caption(f"进度：已完成 {completed} / {STEP_FULL} 步 · 当前第 {s.current_step} 步 · "
-               f"模块{dict((s0[0], s0[2]) for s0 in STEPS)[s.current_step]}")
     if s.milestone:
         st.success(s.milestone[1])
     # AI 建议（上一步）

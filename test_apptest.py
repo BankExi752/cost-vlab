@@ -100,9 +100,12 @@ click(at, "s23_btn")
 check("步23后进入第24步", at.session_state["current_step"] == 24,
       f"实际={at.session_state.get('current_step')}")
 
-# 步 24 风险事件（二次确认）
+# 步 24 风险事件（真正的二次确认：一次确认→再次确认执行）
 click(at, "s24_btn")
-check("步24后进入第25步", at.session_state["current_step"] == 25,
+check("步24一次确认后仍在第24步", at.session_state["current_step"] == 24,
+      f"实际={at.session_state.get('current_step')}")
+click(at, "s24_btn2")
+check("步24二次确认后进入第25步", at.session_state["current_step"] == 25,
       f"实际={at.session_state.get('current_step')}")
 check("风险事件已记录", "event_id" in at.session_state["decisions"].get(24, {}),
       at.session_state["decisions"].get(24, {}))
@@ -131,6 +134,42 @@ check("全部28步完成", len(at.session_state["decisions"]) >= 28,
 # 综合评分有限且在 0-100
 score = app_final_score(at)
 check("综合评分 0-100", 0 <= score <= 100, score)
+
+# ===== 易用性回归：返回已完成步骤时 radio 恢复上次选择 =====
+at2 = AppTest.from_file("main_app.py", default_timeout=120)
+at2.run()
+click(at2, "start_btn")
+click(at2, "fin_1")
+at2.radio(key="s2_sup").set_value("低价供应商：价格11元/kg·质量系数0.9·返工风险高")
+at2.run()
+click(at2, "fin_2")
+check("步2落库为低价供应商", at2.session_state["decisions"][2]["supplier"] == "低价供应商",
+      at2.session_state["decisions"][2].get("supplier"))
+at2.sidebar.button(key="nav_2").click()
+at2.run()
+check("返回步2后radio恢复低价供应商", "低价供应商" in at2.radio(key="s2_sup").value,
+      str(at2.radio(key="s2_sup").value))
+
+# ===== 易用性回归：步24 切换选项后一次确认状态复位 =====
+at3 = AppTest.from_file("main_app.py", default_timeout=120)
+at3.run()
+click(at3, "start_btn")
+for n in range(1, 19):
+    click(at3, f"fin_{n}")
+at3.text_area(key="s19_idea").set_value(
+    "引入能耗数字化监控系统，按班组核算电费并纳入月度绩效，分阶段实施，"
+    "预计每月节约 1.2 万元，成本费用下降 8%，财务部按月出具报表。")
+at3.run()
+click(at3, "s19_btn")
+for n in range(20, 23):
+    click(at3, f"fin_{n}")
+click(at3, "s23_btn")
+click(at3, "s24_btn")
+check("步24一次确认后仍在第24步（复位回归）", at3.session_state["current_step"] == 24,
+      f"实际={at3.session_state.get('current_step')}")
+click(at3, "s24_btn2")
+check("步24二次确认后进入第25步（复位回归）", at3.session_state["current_step"] == 25,
+      f"实际={at3.session_state.get('current_step')}")
 
 print(f"\n=== AppTest 结果：PASS {len(PASS)} / {len(PASS) + len(FAIL)} ===")
 if FAIL:
