@@ -85,6 +85,8 @@ PAGES = [("🗺️ 实验导览", "导览"), ("🧭 决策台（25步）", "决�
          ("📋 复盘报告", "复盘"), ("🛡️ 能力画像", "画像"), ("📊 经营决策报告", "报告")]
 PAGE_BY_LABEL = dict(PAGES)                    # 板块名 → page id
 PAGE_BY_ID = dict((p, t) for t, p in PAGES)    # page id → 板块名
+PAGE_QMAP = {"导览": "guide", "决策台": "decision", "复盘": "review",
+             "画像": "profile", "报告": "report"}   # URL 短码（避免中文转义问题）
 BOARD_NAMES = {26: "📋 复盘报告 · 同口径复盘",
                27: "🛡️ 能力画像 · 五维雷达",
                28: "📊 经营决策报告 · 定价/排产/考核建议"}
@@ -1579,15 +1581,35 @@ def inject_css():
 
 
 def render_top_nav():
-    """顶部板块导航：5 个按钮一排（选中项主色高亮），on_click 回调切换，最稳可点"""
+    """顶部板块导航：原生 HTML 链接 + URL 查询参数驱动。
+    点击是浏览器原生导航（100% 可点，杜绝控件点击失效），链接带 ?page=xxx，
+    本函数消费该参数并立即清除，防止残留覆盖后续交互。"""
     s = st.session_state
-    cols = st.columns(len(PAGES))
-    for col, (label, page_id) in zip(cols, PAGES):
-        with col:
-            active = page_id == s.page
-            col.button(label, key=f"topnav_{page_id}",
-                       type="primary" if active else "secondary",
-                       width="stretch", on_click=_nav_cb, args=(page_id,))
+    qp = st.query_params
+    qpage = qp.get("page")
+    if qpage is not None:
+        qpage_id = next((pid for pid, code in PAGE_QMAP.items() if code == qpage), None)
+        if qpage_id is not None and qpage_id != s.page:
+            s.page = qpage_id
+        if "page" in qp:
+            del qp["page"]
+    cur = s.page
+    items = []
+    for label, page_id in PAGES:
+        active = page_id == cur
+        href = f"?page={PAGE_QMAP[page_id]}"
+        if active:
+            style = ("background:linear-gradient(90deg,#0b3d91 0%,#1f6feb 100%);color:#fff;"
+                     "box-shadow:0 2px 8px rgba(11,61,145,.25);border:none;")
+        else:
+            style = "background:#fff;color:#0b3d91;border:1px solid #c9d6ef;"
+        items.append(
+            f'<a href="{href}" style="flex:1;text-align:center;padding:8px 6px;border-radius:10px;'
+            f'font-size:15px;font-weight:600;text-decoration:none;{style}'
+            f'transition:all .15s"> {label}</a>')
+    st.markdown(
+        f'<div style="display:flex;gap:8px;margin:4px 0 10px">{"".join(items)}</div>',
+        unsafe_allow_html=True)
 
 
 def render_board(step_no):
